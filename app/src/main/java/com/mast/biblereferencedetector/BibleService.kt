@@ -1,4 +1,4 @@
-package com.mast.biblereferencedetector
+package com.aura.verselink
 
 import android.app.*
 import android.content.Intent
@@ -125,7 +125,7 @@ class BibleService : Service(), RecognitionListener {
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
 
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Sermon Scanner")
+            .setContentTitle("Aura Verse Link")
             .setContentText(content)
             .setSmallIcon(android.R.drawable.presence_audio_online)
             .setOngoing(true)

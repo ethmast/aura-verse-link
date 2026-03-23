@@ -1,4 +1,4 @@
-package com.mast.biblereferencedetector.ui.theme
+package com.aura.verselink.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

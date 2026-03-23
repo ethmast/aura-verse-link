@@ -1,4 +1,4 @@
-package com.mast.biblereferencedetector
+package com.aura.verselink
 
 import android.Manifest
 import android.app.ActivityManager
@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.aura.verselink.ui.theme.AuraVerseLinkTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -40,7 +41,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             var isServiceRunning by remember { mutableStateOf(isServiceRunning(BibleService::class.java)) }
 
-            MaterialTheme(colorScheme = darkColorScheme()) {
+            AuraVerseLinkTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -53,7 +54,7 @@ class MainActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Bible Reference Detector",
+                            text = "Aura Verse Link",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.mast.biblereferencedetector"
+    namespace = "com.aura.verselink"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.mast.biblereferencedetector"
+        applicationId = "com.aura.verselink"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

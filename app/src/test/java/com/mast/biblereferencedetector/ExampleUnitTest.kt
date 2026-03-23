@@ -1,4 +1,4 @@
-package com.mast.biblereferencedetector
+package com.aura.verselink
 
 import org.junit.Test
 
