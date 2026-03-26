@@ -23,6 +23,15 @@ import com.aura.verselink.ui.theme.AuraVerseLinkTheme
 
 class MainActivity : ComponentActivity() {
 
+
+    override fun onStart() {
+        super.onStart()
+        val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
+        if (prefs.getString("api_key", null) == null) {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
