@@ -17,24 +17,44 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.google.ai.client.generativeai.GenerativeModel
+import com.aura.verselink.ai.AIError
+import com.aura.verselink.ai.AIProvider
+import com.aura.verselink.ai.AIProviderFactory
+import okhttp3.Protocol
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class BibleService : Service(), RecognitionListener {
+
+    companion object {
+        val logFlow = MutableStateFlow<List<String>>(emptyList())
+        val testTrigger = MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+        fun addLog(tag: String, message: String) {
+            val entry = "[${SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())}] [$tag] $message"
+            Log.d("BibleService/$tag", message)
+            logFlow.value = (listOf(entry) + logFlow.value).take(100)
+        }
+    }
 
     // --- State Management ---
     private var isAiProcessing = false
     private val lastFoundReferences = mutableMapOf<String, Long>()
-    private val REFERENCE_EXPIRY = 30000L // 30 seconds
+    private val REFERENCE_EXPIRY = 30000L
 
     private val speechBuffer = mutableListOf<String>()
-    private val MAX_BUFFER_SIZE = 30 // Large enough to handle "sandwiched" references
+    private val MAX_BUFFER_SIZE = 30
 
     private var speechRecognizer: SpeechRecognizer? = null
     private val scope = CoroutineScope(Dispatchers.Main + Job())
@@ -43,8 +63,11 @@ class BibleService : Service(), RecognitionListener {
     private var lastSentSnippet = ""
     private var lastAiCallTime = 0L
 
-    // Using Gemini 1.5 Flash for optimal speed and extraction
-    private var generativeModel: GenerativeModel? = null // Change from val to var
+    private val httpClient = OkHttpClient.Builder()
+        .protocols(listOf(Protocol.HTTP_1_1))
+        .callTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
+    private var aiProvider: AIProvider? = null
 
     // --- Normalization & Maps ---
     private val verbalVariations = mapOf(
@@ -141,27 +164,42 @@ class BibleService : Service(), RecognitionListener {
         super.onCreate()
 
         val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
-        val userKey = prefs.getString("api_key", null)
 
-        if (userKey.isNullOrEmpty()) {
-            android.util.Log.e("BibleService", "No API Key found. Stopping.")
+        // One-time migration: copy legacy "api_key" → "api_key_google"
+        val legacyKey = prefs.getString("api_key", null)
+        if (!legacyKey.isNullOrEmpty() &&
+            prefs.getString(AIProviderFactory.apiKeyPrefFor(AIProviderFactory.PROVIDER_GOOGLE), null).isNullOrEmpty()) {
+            prefs.edit()
+                .putString(AIProviderFactory.apiKeyPrefFor(AIProviderFactory.PROVIDER_GOOGLE), legacyKey)
+                .putString("provider_id", AIProviderFactory.PROVIDER_GOOGLE)
+                .apply()
+        }
+
+        aiProvider = AIProviderFactory.fromPrefs(prefs, httpClient)
+        if (aiProvider == null) {
+            addLog("Service", "No API key found — stopping")
             stopSelf()
             return
         }
 
-        // Initialize the model with the stored key
-        generativeModel = GenerativeModel(
-            modelName = "gemma-3-27b-it",
-            apiKey = userKey
-        )
+        val providerId = prefs.getString("provider_id", AIProviderFactory.PROVIDER_GOOGLE) ?: ""
+        val modelName  = prefs.getString("model_name", "") ?: ""
+        addLog("Service", "Starting with provider: $providerId model: $modelName")
 
         startForeground(1, getStickyNotification("Listening for sermon references..."))
         initRecognizer()
+
+        scope.launch {
+            testTrigger.collect { text ->
+                addLog("Test", "Manual test: \"$text\"")
+                parseWithAI(text)
+            }
+        }
     }
 
     private fun initRecognizer() {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            Log.e("BibleService", "Speech recognition not available")
+            addLog("SR", "Speech recognition not available")
             return
         }
 
@@ -175,11 +213,11 @@ class BibleService : Service(), RecognitionListener {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
         }
-        
+
         try {
             speechRecognizer?.startListening(intent)
         } catch (e: Exception) {
-            Log.e("BibleService", "Failed to start listening: ${e.message}")
+            addLog("SR", "Failed to start listening: ${e.message}")
             recreateRecognizer()
         }
     }
@@ -202,18 +240,15 @@ class BibleService : Service(), RecognitionListener {
         speechBuffer.addAll(words.takeLast(MAX_BUFFER_SIZE))
 
         val currentContext = speechBuffer.joinToString(" ")
-
-        // Check if the *latest* words contain a potential trigger
         val recentlyAdded = words.takeLast(7).joinToString(" ")
 
         if (shouldTriggerAI(recentlyAdded)) {
             debounceJob?.cancel()
             debounceJob = scope.launch {
-                delay(2000) // Wait for preacher cadence
+                delay(2000)
 
                 val currentTime = System.currentTimeMillis()
 
-                // Avoid redundant calls
                 if (isAiProcessing && currentContext.startsWith(lastSentSnippet)) return@launch
                 if (currentTime - lastAiCallTime < 4000 && currentContext == lastSentSnippet) return@launch
 
@@ -234,7 +269,6 @@ class BibleService : Service(), RecognitionListener {
             }
         }
 
-        // Reset for new sentence/chunk
         speechBuffer.clear()
         lastSentSnippet = ""
         initRecognizer()
@@ -245,36 +279,66 @@ class BibleService : Service(), RecognitionListener {
         if (isAiProcessing) return
         isAiProcessing = true
 
+        addLog("AI", "Sending snippet: \"${rawText.take(80)}${if (rawText.length > 80) "…" else ""}\"")
+
         scope.launch {
             try {
                 val prompt = """
-                    Extract Bible references (Book, Chapter, Verse) from this transcript snippet.
-                    Transcript: "$rawText"
-                    
+                    You are a strict extractor. Output ONLY the final answer. No preamble, no explanation, no <think> tags, no reasoning, no markdown.
+                    Task: Extract Bible references (Book, Chapter, Verse) from the transcript.
+
                     Rules:
-                    1. Return ONLY the USFM code(s) (e.g., JHN.3.16).
+                    1. Return ONLY the USFM code(s) in the format BOOK.CHAPTER.VERSE the book is a 3 character code (e.g., JHN.3.16).
                     2. If multiple references are found, return them separated by commas.
                     3. If a range of verses is specified in the same chapter return it as a range (e.g., JHN.3.16-18).
                     4. If NO valid reference (Book + Chapter at minimum) is found, return 'NONE'.
                     5. The reference might be "sandwiched" in the middle of long speech.
-                    6. Ignore partial mentions like just "John" without a chapter.
+                    6. Ignore partial mentions like just a book name without a chapter.
+                    
+                    Transcript: "$rawText"
                 """.trimIndent()
 
-                val response = withContext(Dispatchers.IO) {
-                    generativeModel?.generateContent(prompt) // Use ?. call
-                }
+                val raw = withContext(Dispatchers.IO) {
+                    aiProvider!!.generateContent(prompt)
+                }.trim()
+                addLog("AI", "Raw response: $raw")
 
-                val result = response?.text?.trim()?.uppercase()?.replace("`", "") ?: "NONE"
+                val validBookCodes = bibleBooks.values.toSet()
 
-                if (result != "NONE") {
-                    val refs = result.split(",").map { it.trim() }.filter { it.contains(".") }
-                    for (ref in refs) {
-                        processDetectedReference(ref)
+                // Allow up to 4-char book codes (models often return e.g. 1TIM instead of 1TI).
+                // The lookbehind prevents matching TIM inside 1TIM.2.12.
+                // Each candidate is then normalized: we try the extracted code as-is, then
+                // progressively shorter prefixes, until we find a known USFM code.
+                val usfmRegex = Regex("(?<![A-Z0-9])[A-Z0-9]{2,4}\\.[0-9]+\\.[0-9]+(?:-[0-9]+)?")
+                val refs = usfmRegex.findAll(raw.uppercase())
+                    .mapNotNull { match ->
+                        val bookCode = match.value.substringBefore(".")
+                        val rest = match.value.substringAfter(".")
+                        val validCode = (bookCode.length downTo 2)
+                            .map { bookCode.take(it) }
+                            .firstOrNull { it in validBookCodes }
+                        validCode?.let { "$it.$rest" }
                     }
+                    .distinct()
+                    .toList()
+
+                addLog("AI", if (refs.isNotEmpty()) "Found: ${refs.joinToString()}" else "No references found")
+
+                for (ref in refs) {
+                    processDetectedReference(ref)
                 }
 
+            } catch (e: AIError) {
+                val userMsg = when (e) {
+                    is AIError.RateLimitError -> "Rate limit hit. Try a different model or wait before re-enabling."
+                    is AIError.AuthError      -> "Invalid API key. Open Settings to fix it."
+                    is AIError.NetworkError   -> "AI error: ${e.message}"
+                }
+                addLog("AI", "Error: ${e.message}")
+                sendErrorNotification(userMsg)
             } catch (e: Exception) {
-                Log.e("BibleService", "AI Error: ${e.message}")
+                addLog("AI", "Unexpected error: ${e.message}")
+                sendErrorNotification("AI error: ${e.message}")
             } finally {
                 isAiProcessing = false
             }
@@ -287,6 +351,7 @@ class BibleService : Service(), RecognitionListener {
 
         if (currentTime - lastSeen > REFERENCE_EXPIRY) {
             lastFoundReferences[ref] = currentTime
+            addLog("Detect", "Verse found: $ref")
             sendDetectionNotification(ref)
         }
     }
@@ -305,8 +370,28 @@ class BibleService : Service(), RecognitionListener {
             .setAutoCancel(true)
             .build()
 
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.notify(reference.hashCode(), notification)
+        getSystemService(NotificationManager::class.java).notify(reference.hashCode(), notification)
+    }
+
+    private fun sendErrorNotification(message: String) {
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, "error".hashCode(), openAppIntent, PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, "BibleScannerChannel")
+            .setSmallIcon(R.drawable.ic_dialog_alert)
+            .setContentTitle("Aura Verse Link — Error")
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        getSystemService(NotificationManager::class.java).notify("error".hashCode(), notification)
     }
 
     private fun getStickyNotification(content: String): Notification {
@@ -328,7 +413,7 @@ class BibleService : Service(), RecognitionListener {
             return
         }
 
-        Log.e("BibleService", "SR Error: $error")
+        addLog("SR", "Error code: $error")
         when (error) {
             SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> {
                 speechRecognizer?.cancel()
@@ -349,6 +434,7 @@ class BibleService : Service(), RecognitionListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
     override fun onBind(intent: Intent?): IBinder? = null
     override fun onDestroy() {
+        addLog("Service", "Service stopped")
         scope.cancel()
         speechRecognizer?.destroy()
         super.onDestroy()
