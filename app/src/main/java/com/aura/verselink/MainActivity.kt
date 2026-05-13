@@ -141,7 +141,7 @@ class MainActivity : ComponentActivity() {
                         OutlinedButton(
                             onClick = {
                                 coroutineScope.launch {
-                                    BibleService.testTrigger.emit("first timothy two 12")
+                                    BibleService.testTrigger.emit("john three 16")
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
