@@ -50,9 +50,9 @@ class SettingsActivity : ComponentActivity() {
 
     private val providerHints = mapOf(
         AIProviderFactory.PROVIDER_GOOGLE to "Get a key at aistudio.google.com",
-        AIProviderFactory.PROVIDER_OPENAI to "Get a key at platform.openai.com",
+        AIProviderFactory.PROVIDER_OPENAI to "Get a key at platform.openai.com. Please note that OpenAI models have not been tested in Aura yet and may not work.",
         AIProviderFactory.PROVIDER_GROQ   to "Get a key at console.groq.com",
-        AIProviderFactory.PROVIDER_OLLAMA to "Run Ollama locally and enter the device-reachable IP:port above"
+        AIProviderFactory.PROVIDER_OLLAMA to "Run Ollama locally and enter the device-reachable IP:port above. Please note that Ollama models have not been tested in Aura yet and may not work."
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
