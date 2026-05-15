@@ -9,6 +9,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
@@ -16,18 +18,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.launch
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.aura.verselink.ai.AIProviderFactory
 import com.aura.verselink.ui.theme.AuraVerseLinkTheme
 
 class MainActivity : ComponentActivity() {
 
-
     override fun onStart() {
         super.onStart()
         val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
-        if (prefs.getString("api_key", null) == null) {
+        val providerId = prefs.getString("provider_id", null)
+        val hasLegacyKey = !prefs.getString("api_key", null).isNullOrEmpty()
+        val hasNewKey = providerId != null && (
+            !prefs.getString(AIProviderFactory.apiKeyPrefFor(providerId), null).isNullOrEmpty()
+            || providerId == AIProviderFactory.PROVIDER_OLLAMA
+        )
+        if (!hasLegacyKey && !hasNewKey) {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
     }
@@ -35,12 +45,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Request Permissions
         val permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
-        ) { permissions ->
-            // Permissions handled by system dialog
-        }
+        ) { }
 
         permissionLauncher.launch(arrayOf(
             Manifest.permission.RECORD_AUDIO,
@@ -49,6 +56,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var isServiceRunning by remember { mutableStateOf(isServiceRunning(BibleService::class.java)) }
+            var showLogs by remember { mutableStateOf(false) }
+            val logs by BibleService.logFlow.collectAsState()
+            val coroutineScope = rememberCoroutineScope()
 
             AuraVerseLinkTheme {
                 Surface(
@@ -69,9 +79,9 @@ class MainActivity : ComponentActivity() {
                             color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center
                         )
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         Text(
                             text = "Automatically detect and open Bible verses mentioned in your environment using Gemini AI.",
                             style = MaterialTheme.typography.bodyLarge,
@@ -100,8 +110,7 @@ class MainActivity : ComponentActivity() {
                         } else {
                             Button(
                                 onClick = {
-                                    val intent = Intent(this@MainActivity, BibleService::class.java)
-                                    startForegroundService(intent)
+                                    startForegroundService(Intent(this@MainActivity, BibleService::class.java))
                                     isServiceRunning = true
                                 },
                                 modifier = Modifier.fillMaxWidth().height(56.dp)
@@ -109,6 +118,71 @@ class MainActivity : ComponentActivity() {
                                 Icon(Icons.Default.Mic, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
                                 Text("Enable Listener")
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            TextButton(onClick = {
+                                startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+                            }) {
+                                Text("Settings")
+                            }
+
+                            TextButton(onClick = { showLogs = !showLogs }) {
+                                Text(if (showLogs) "Hide Logs" else "Show Logs")
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    BibleService.testTrigger.emit("john three 16")
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Test: \"John three 16\"")
+                        }
+
+                        if (showLogs) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                if (logs.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            "No logs yet",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                } else {
+                                    LazyColumn(modifier = Modifier.padding(8.dp)) {
+                                        items(logs) { entry ->
+                                            Text(
+                                                text = entry,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -121,9 +195,7 @@ class MainActivity : ComponentActivity() {
     private fun isServiceRunning(serviceClass: Class<*>): Boolean {
         val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         for (service in manager.getRunningServices(Int.MAX_VALUE)) {
-            if (serviceClass.name == service.service.className) {
-                return true
-            }
+            if (serviceClass.name == service.service.className) return true
         }
         return false
     }

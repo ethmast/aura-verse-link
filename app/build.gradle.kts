@@ -48,7 +48,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation("androidx.compose.material:material-icons-extended")
 
-    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
     implementation("androidx.lifecycle:lifecycle-service:2.6.2")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

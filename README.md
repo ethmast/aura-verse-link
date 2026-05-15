@@ -1,26 +1,27 @@
+**Important Note:** Google's models are largely unusable on the free tier currently due to high traffic. For free usage Groq is recommended. The OpenAI and Ollama models are untested currently and may not work.
 # Aura Verse Link (AUdio Reference Assistant)
 
-**Aura Verse Link** is an intelligent background utility designed to enhance the sermon-listening experience. By leveraging local speech-to-text and Google's Gemini AI, the app automatically detects Bible references mentioned in real-time, formats them, and provides a direct notification link to open the passage in YouVersion.
+**Aura Verse Link** is an intelligent background utility designed to enhance the sermon-listening experience. By leveraging local speech-to-text and your AI model of choice, the app automatically detects Bible references mentioned in real-time, formats them, and provides a direct notification link to open the passage in YouVersion.
 
-Built with privacy in mind. On compatible devices, the app performs primary audio processing directly on your device. Only the specific, small snippets of text containing a detected Bible reference are sent to Gemini for formatting. This ensures your data stays in your hands.
+Built with privacy in mind. On compatible devices, the app performs primary audio processing directly on your device. Only the specific, small snippets of text containing a detected Bible reference are sent to AI for formatting. This ensures your data stays in your hands.
 ## 🚀 How It Works
 
 1.  **Listen:** The app runs silently in the background during a sermon or study.
 2.  **Detect:** It listens for specific keywords (Bible books).
-3.  **Process:** When a reference is detected, the relevant snippet is sent to **Gemini** to be precisely formatted into a standard Bible reference (e.g., "John 3 16" becomes "John 3:16").
+3.  **Process:** When a reference is detected, the relevant snippet is sent to AI to be precisely formatted into a standard Bible reference (e.g., "John 3 16" becomes "JHN.3.16").
 4.  **Link:** A notification pops up on your device.
 5.  **Read:** Tapping the notification opens that exact verse immediately in the **YouVersion Bible App**.
 
 ## ✨ Features
 
 * **Hands-Free Experience:** Keep your focus on the sermon without manually searching for verses.
-* **Powered by Gemini:** High-accuracy formatting and context detection.
+* **Powered by AI:** High-accuracy formatting and context detection.
 * **Deep Integration:** Direct deep-linking into YouVersion for a seamless transition from audio to text.
 * **Lightweight:** Optimized to run in the background with minimal battery impact.
 
 ## 🛠️ Initial Setup
 
-To use Aura Verse Link, you will need a free API key from Google to power the reference detection.
+To use Aura Verse Link, you will need a free API key from your AI provider (Google is used in this example) to power the reference detection.
 
 1.  **Get a Free API Key:**
     * Visit [Google AI Studio](https://aistudio.google.com/).
@@ -35,7 +36,7 @@ To use Aura Verse Link, you will need a free API key from Google to power the re
 
 * An Android device.
 * [YouVersion Bible App](https://www.bible.com/app) installed.
-* An active internet connection (for Gemini API calls).
+* An active internet connection (for AI API calls).
 * **Recommended-** For best results and maximum privacy a device with onboard language processing is recommended. This may need to be enabled in your device's settings.
 
 ## 🤝 Contributing
