@@ -36,6 +36,7 @@
         </activity>
 
         <activity android:name=".SettingsActivity" />
+        <activity android:name=".PrivacyPolicyActivity" />
 
         <service
             android:name=".BibleService"

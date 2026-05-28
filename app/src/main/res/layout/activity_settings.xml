@@ -105,5 +105,13 @@
             android:textColor="#555"
             android:autoLink="web"/>
 
+        <Button
+            android:id="@+id/privacyPolicyButton"
+            style="?attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Privacy Policy"/>
+
     </LinearLayout>
 </ScrollView>

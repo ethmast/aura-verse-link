@@ -69,6 +69,7 @@ class SettingsActivity : ComponentActivity() {
         val customModelInput  = findViewById<EditText>(R.id.customModelInput)
         val saveBtn           = findViewById<Button>(R.id.saveButton)
         val providerHint      = findViewById<TextView>(R.id.providerHint)
+        val privacyPolicyBtn  = findViewById<Button>(R.id.privacyPolicyButton)
 
         // Provider spinner setup
         val providerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, providerDisplayNames)
@@ -139,6 +140,10 @@ class SettingsActivity : ComponentActivity() {
                 if (!isCustom) customModelInput.text.clear()
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        privacyPolicyBtn.setOnClickListener {
+            startActivity(Intent(this, PrivacyPolicyActivity::class.java))
         }
 
         saveBtn.setOnClickListener {

@@ -33,7 +33,7 @@ class GoogleAIProvider(
     }
 
     private suspend fun attempt(prompt: String): String = withContext(Dispatchers.IO) {
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$apiKey"
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent"
 
         val bodyJson = JSONObject().apply {
             put("contents", JSONArray().put(
@@ -43,18 +43,14 @@ class GoogleAIProvider(
             ))
         }
 
-        val requestBodyStr = bodyJson.toString()
-        Log.d("GoogleAIProvider", "POST $url")
-        Log.d("GoogleAIProvider", "Body: $requestBodyStr")
-
         val request = Request.Builder()
             .url(url)
-            .post(requestBodyStr.toRequestBody("application/json".toMediaType()))
+            .addHeader("x-goog-api-key", apiKey)
+            .post(bodyJson.toString().toRequestBody("application/json".toMediaType()))
             .build()
 
         val response = client.newCall(request).execute()
         val body = response.body?.string() ?: ""
-        Log.d("GoogleAIProvider", "HTTP ${response.code}: $body")
 
         when (response.code) {
             200 -> {
