@@ -1,7 +1,6 @@
 package com.aura.verselink
 
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -176,8 +175,6 @@ class SettingsActivity : ComponentActivity() {
             editor.apply()
 
             Toast.makeText(this, "Settings Saved!", Toast.LENGTH_SHORT).show()
-            stopService(Intent(this, BibleService::class.java))
-            startForegroundService(Intent(this, BibleService::class.java))
             finish()
         }
     }

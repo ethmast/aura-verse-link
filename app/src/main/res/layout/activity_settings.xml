@@ -7,7 +7,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp"
+        android:padding="60dp"
         android:gravity="center_horizontal">
 
         <TextView
@@ -95,7 +95,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
-            android:text="Save &amp; Start Service"/>
+            android:text="Save Settings"/>
 
         <TextView
             android:id="@+id/providerHint"

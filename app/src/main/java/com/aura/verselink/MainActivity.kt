@@ -4,10 +4,13 @@ import android.Manifest
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -110,8 +113,23 @@ class MainActivity : ComponentActivity() {
                         } else {
                             Button(
                                 onClick = {
-                                    startForegroundService(Intent(this@MainActivity, BibleService::class.java))
-                                    isServiceRunning = true
+                                    val audioGranted = ContextCompat.checkSelfPermission(
+                                        this@MainActivity, Manifest.permission.RECORD_AUDIO
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                    if (audioGranted) {
+                                        startForegroundService(Intent(this@MainActivity, BibleService::class.java))
+                                        isServiceRunning = true
+                                    } else {
+                                        permissionLauncher.launch(arrayOf(
+                                            Manifest.permission.RECORD_AUDIO,
+                                            Manifest.permission.POST_NOTIFICATIONS
+                                        ))
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Microphone permission required — please grant it and try again.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth().height(56.dp)
                             ) {
