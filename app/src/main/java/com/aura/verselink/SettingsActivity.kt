@@ -1,6 +1,5 @@
 package com.aura.verselink
 
-import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -11,6 +10,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.core.content.edit
 import com.aura.verselink.ai.AIProviderFactory
 
 class SettingsActivity : ComponentActivity() {
@@ -58,7 +58,7 @@ class SettingsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
-        val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("AuraPrefs", MODE_PRIVATE)
 
         val providerSpinner   = findViewById<Spinner>(R.id.providerSpinner)
         val apiKeyLabel       = findViewById<TextView>(R.id.apiKeyLabel)
@@ -160,19 +160,18 @@ class SettingsActivity : ComponentActivity() {
                 return@setOnClickListener
             }
 
-            val editor = prefs.edit()
-                .putString("provider_id", providerId)
-                .putString(AIProviderFactory.apiKeyPrefFor(providerId), apiKey)
-                .putString("model_name", modelId)
-
-            // Keep legacy key in sync when Google is selected
-            if (providerId == AIProviderFactory.PROVIDER_GOOGLE) {
-                editor.putString("api_key", apiKey)
+            prefs.edit {
+                putString("provider_id", providerId)
+                putString(AIProviderFactory.apiKeyPrefFor(providerId), apiKey)
+                putString("model_name", modelId)
+                // Keep legacy key in sync when Google is selected
+                if (providerId == AIProviderFactory.PROVIDER_GOOGLE) {
+                    putString("api_key", apiKey)
+                }
+                if (providerId == AIProviderFactory.PROVIDER_OLLAMA) {
+                    putString("ollama_base_url", ollamaUrlInput.text.toString().trim())
+                }
             }
-            if (providerId == AIProviderFactory.PROVIDER_OLLAMA) {
-                editor.putString("ollama_base_url", ollamaUrlInput.text.toString().trim())
-            }
-            editor.apply()
 
             Toast.makeText(this, "Settings Saved!", Toast.LENGTH_SHORT).show()
             finish()

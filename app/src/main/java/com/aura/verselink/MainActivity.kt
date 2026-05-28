@@ -2,8 +2,8 @@ package com.aura.verselink
 
 import android.Manifest
 import android.app.ActivityManager
-import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("AuraPrefs", MODE_PRIVATE)
         val providerId = prefs.getString("provider_id", null)
         val hasLegacyKey = !prefs.getString("api_key", null).isNullOrEmpty()
         val hasNewKey = providerId != null && (
@@ -52,10 +52,14 @@ class MainActivity : ComponentActivity() {
             ActivityResultContracts.RequestMultiplePermissions()
         ) { }
 
-        permissionLauncher.launch(arrayOf(
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.POST_NOTIFICATIONS
-        ))
+        permissionLauncher.launch(
+            buildList {
+                add(Manifest.permission.RECORD_AUDIO)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    add(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }.toTypedArray()
+        )
 
         setContent {
             var isServiceRunning by remember { mutableStateOf(isServiceRunning(BibleService::class.java)) }
@@ -120,10 +124,14 @@ class MainActivity : ComponentActivity() {
                                         startForegroundService(Intent(this@MainActivity, BibleService::class.java))
                                         isServiceRunning = true
                                     } else {
-                                        permissionLauncher.launch(arrayOf(
-                                            Manifest.permission.RECORD_AUDIO,
-                                            Manifest.permission.POST_NOTIFICATIONS
-                                        ))
+                                        permissionLauncher.launch(
+                                            buildList {
+                                                add(Manifest.permission.RECORD_AUDIO)
+                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                                    add(Manifest.permission.POST_NOTIFICATIONS)
+                                                }
+                                            }.toTypedArray()
+                                        )
                                         Toast.makeText(
                                             this@MainActivity,
                                             "Microphone permission required — please grant it and try again.",
@@ -211,7 +219,7 @@ class MainActivity : ComponentActivity() {
 
     @Suppress("DEPRECATION")
     private fun isServiceRunning(serviceClass: Class<*>): Boolean {
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val manager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         for (service in manager.getRunningServices(Int.MAX_VALUE)) {
             if (serviceClass.name == service.service.className) return true
         }
