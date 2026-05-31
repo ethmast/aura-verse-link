@@ -41,6 +41,9 @@ class BibleService : Service(), RecognitionListener {
         val logFlow = MutableStateFlow<List<String>>(emptyList())
         val testTrigger = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
+        private const val CHANNEL_LISTENER = "listener_status"
+        private const val CHANNEL_VERSES   = "verse_detections"
+
         fun addLog(tag: String, message: String) {
             val entry = "[${SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())}] [$tag] $message"
             Log.d("BibleService/$tag", message)
@@ -160,8 +163,23 @@ class BibleService : Service(), RecognitionListener {
     }
 
     // --- Lifecycle & Recognizer ---
+    private fun createNotificationChannels() {
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_LISTENER, "Listener Status", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "Shows while the verse listener is active in the background"
+            }
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_VERSES, "Verse Detections", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Alerts when a Bible verse reference is detected"
+            }
+        )
+    }
+
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannels()
 
         val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
 
@@ -361,7 +379,7 @@ class BibleService : Service(), RecognitionListener {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         val pendingIntent = PendingIntent.getActivity(this, reference.hashCode(), intent, PendingIntent.FLAG_IMMUTABLE)
 
-        val notification = NotificationCompat.Builder(this, "BibleScannerChannel")
+        val notification = NotificationCompat.Builder(this, CHANNEL_VERSES)
             .setSmallIcon(R.drawable.ic_btn_speak_now)
             .setContentTitle("Verse Detected: $reference")
             .setContentText("Tap to open in YouVersion")
@@ -381,7 +399,7 @@ class BibleService : Service(), RecognitionListener {
             this, "error".hashCode(), openAppIntent, PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, "BibleScannerChannel")
+        val notification = NotificationCompat.Builder(this, CHANNEL_VERSES)
             .setSmallIcon(R.drawable.ic_dialog_alert)
             .setContentTitle("Aura Verse Link — Error")
             .setContentText(message)
@@ -395,11 +413,7 @@ class BibleService : Service(), RecognitionListener {
     }
 
     private fun getStickyNotification(content: String): Notification {
-        val channelId = "BibleScannerChannel"
-        val channel = NotificationChannel(channelId, "Service", NotificationManager.IMPORTANCE_LOW)
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-
-        return NotificationCompat.Builder(this, channelId)
+        return NotificationCompat.Builder(this, CHANNEL_LISTENER)
             .setContentTitle("Aura Verse Link")
             .setContentText(content)
             .setSmallIcon(R.drawable.presence_audio_online)
