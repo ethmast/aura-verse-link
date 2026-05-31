@@ -171,7 +171,7 @@ class BibleService : Service(), RecognitionListener {
             }
         )
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_VERSES, "Verse Detections", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            NotificationChannel(CHANNEL_VERSES, "Verse Detections", NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "Alerts when a Bible verse reference is detected"
             }
         )
