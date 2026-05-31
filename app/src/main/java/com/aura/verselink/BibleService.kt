@@ -1,7 +1,6 @@
 package com.aura.verselink
 
 import android.app.*
-import android.R
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -40,6 +39,9 @@ class BibleService : Service(), RecognitionListener {
     companion object {
         val logFlow = MutableStateFlow<List<String>>(emptyList())
         val testTrigger = MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+        var isRunning = false
+            private set
 
         private const val CHANNEL_LISTENER = "listener_status"
         private const val CHANNEL_VERSES   = "verse_detections"
@@ -179,6 +181,7 @@ class BibleService : Service(), RecognitionListener {
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         createNotificationChannels()
 
         val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
@@ -380,7 +383,7 @@ class BibleService : Service(), RecognitionListener {
         val pendingIntent = PendingIntent.getActivity(this, reference.hashCode(), intent, PendingIntent.FLAG_IMMUTABLE)
 
         val notification = NotificationCompat.Builder(this, CHANNEL_VERSES)
-            .setSmallIcon(R.drawable.ic_btn_speak_now)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Verse Detected: $reference")
             .setContentText("Tap to open in YouVersion")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -400,7 +403,7 @@ class BibleService : Service(), RecognitionListener {
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_VERSES)
-            .setSmallIcon(R.drawable.ic_dialog_alert)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Aura Verse Link — Error")
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -416,7 +419,7 @@ class BibleService : Service(), RecognitionListener {
         return NotificationCompat.Builder(this, CHANNEL_LISTENER)
             .setContentTitle("Aura Verse Link")
             .setContentText(content)
-            .setSmallIcon(R.drawable.presence_audio_online)
+            .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)
             .build()
     }
@@ -448,6 +451,7 @@ class BibleService : Service(), RecognitionListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
     override fun onBind(intent: Intent?): IBinder? = null
     override fun onDestroy() {
+        isRunning = false
         addLog("Service", "Service stopped")
         scope.cancel()
         speechRecognizer?.destroy()

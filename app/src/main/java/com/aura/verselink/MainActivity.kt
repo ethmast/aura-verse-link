@@ -1,7 +1,6 @@
 package com.aura.verselink
 
 import android.Manifest
-import android.app.ActivityManager
 import android.content.Intent
 import android.os.Build
 import android.content.pm.PackageManager
@@ -62,7 +61,7 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
-            var isServiceRunning by remember { mutableStateOf(isServiceRunning(BibleService::class.java)) }
+            var isServiceRunning by remember { mutableStateOf(BibleService.isRunning) }
             var showLogs by remember { mutableStateOf(false) }
             val logs by BibleService.logFlow.collectAsState()
             val coroutineScope = rememberCoroutineScope()
@@ -217,12 +216,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Suppress("DEPRECATION")
-    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
-        val manager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
-            if (serviceClass.name == service.service.className) return true
-        }
-        return false
-    }
 }
