@@ -59,7 +59,7 @@ class BibleService : Service(), RecognitionListener {
     private val REFERENCE_EXPIRY = 30000L
 
     private val speechBuffer = mutableListOf<String>()
-    private val MAX_BUFFER_SIZE = 30
+    private val MAX_BUFFER_SIZE = 20
 
     private var speechRecognizer: SpeechRecognizer? = null
     private val scope = CoroutineScope(Dispatchers.Main + Job())
