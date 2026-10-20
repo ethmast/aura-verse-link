@@ -11,8 +11,8 @@ android {
         applicationId = "com.aura.verselink"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -54,6 +54,9 @@ dependencies {
     implementation("org.json:json:20231013")
 
     testImplementation(libs.junit)
+    // Lets local unit tests exercise the real org.json response parsing
+    // instead of the Android stub jar's "not mocked" placeholders.
+    testImplementation("org.json:json:20231013")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

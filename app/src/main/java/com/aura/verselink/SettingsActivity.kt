@@ -13,47 +13,17 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import com.aura.verselink.ai.AIProviderFactory
+import com.aura.verselink.ai.ProviderCatalog
+import com.aura.verselink.ai.UrlRules
 
+/**
+ * Settings UI rendered entirely from [ProviderCatalog] — provider names,
+ * model presets, labels, and hints live in exactly one place, so this
+ * screen can never drift out of sync with the factory again.
+ */
 class SettingsActivity : ComponentActivity() {
 
-    private val providerDisplayNames = listOf("Google AI Studio", "OpenAI", "Groq", "Ollama (local)")
-    private val providerIds = listOf(
-        AIProviderFactory.PROVIDER_GOOGLE,
-        AIProviderFactory.PROVIDER_OPENAI,
-        AIProviderFactory.PROVIDER_GROQ,
-        AIProviderFactory.PROVIDER_OLLAMA
-    )
-
-    private val modelsByProvider = mapOf(
-        AIProviderFactory.PROVIDER_GOOGLE to listOf(
-            "gemma-4-31b-it" to "Gemma 4 31B",
-            "gemma-4-26b-a4b-it" to "Gemma 4 26B (Recommended)",
-            "gemini-2.0-flash" to "Gemini 2.0 Flash",
-            "__custom__" to "Custom…"
-        ),
-        AIProviderFactory.PROVIDER_OPENAI to listOf(
-            "gpt-4o-mini" to "GPT-4o mini",
-            "gpt-4o" to "GPT-4o",
-            "__custom__" to "Custom…"
-        ),
-        AIProviderFactory.PROVIDER_GROQ to listOf(
-            "llama-3.1-8b-instant" to "Llama 3.1 8B",
-            "llama-3.3-70b-versatile" to "Llama 3.3 70B",
-            "__custom__" to "Custom…"
-        ),
-        AIProviderFactory.PROVIDER_OLLAMA to listOf(
-            "llama3" to "llama3",
-            "mistral" to "mistral",
-            "__custom__" to "Custom…"
-        )
-    )
-
-    private val providerHints = mapOf(
-        AIProviderFactory.PROVIDER_GOOGLE to "Get a key at aistudio.google.com",
-        AIProviderFactory.PROVIDER_OPENAI to "Get a key at platform.openai.com. Please note that OpenAI models have not been tested in Aura yet and may not work.",
-        AIProviderFactory.PROVIDER_GROQ   to "Get a key at console.groq.com",
-        AIProviderFactory.PROVIDER_OLLAMA to "Run Ollama locally and enter the device-reachable IP:port above. Please note that Ollama models have not been tested in Aura yet and may not work."
-    )
+    private val providers = ProviderCatalog.providers
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,98 +31,107 @@ class SettingsActivity : ComponentActivity() {
 
         val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
 
-        val providerSpinner   = findViewById<Spinner>(R.id.providerSpinner)
-        val apiKeyLabel       = findViewById<TextView>(R.id.apiKeyLabel)
-        val apiKeyInput       = findViewById<EditText>(R.id.apiKeyInput)
-        val ollamaUrlLabel    = findViewById<TextView>(R.id.ollamaUrlLabel)
-        val ollamaUrlInput    = findViewById<EditText>(R.id.ollamaUrlInput)
-        val modelSpinner      = findViewById<Spinner>(R.id.modelSpinner)
-        val customModelInput  = findViewById<EditText>(R.id.customModelInput)
-        val saveBtn           = findViewById<Button>(R.id.saveButton)
-        val providerHint      = findViewById<TextView>(R.id.providerHint)
+        val providerSpinner = findViewById<Spinner>(R.id.providerSpinner)
+        val apiKeyLabel = findViewById<TextView>(R.id.apiKeyLabel)
+        val apiKeyInput = findViewById<EditText>(R.id.apiKeyInput)
+        val baseUrlLabel = findViewById<TextView>(R.id.baseUrlLabel)
+        val baseUrlInput = findViewById<EditText>(R.id.baseUrlInput)
+        val modelSpinner = findViewById<Spinner>(R.id.modelSpinner)
+        val customModelInput = findViewById<EditText>(R.id.customModelInput)
+        val saveBtn = findViewById<Button>(R.id.saveButton)
+        val providerHint = findViewById<TextView>(R.id.providerHint)
 
-        // Provider spinner setup
-        val providerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, providerDisplayNames)
-        providerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        providerSpinner.adapter = providerAdapter
+        fun spinnerAdapter(items: List<String>): ArrayAdapter<String> =
+            ArrayAdapter(this, android.R.layout.simple_spinner_item, items).also {
+                it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
 
-        val savedProviderId = prefs.getString("provider_id", AIProviderFactory.PROVIDER_GOOGLE) ?: AIProviderFactory.PROVIDER_GOOGLE
-        providerSpinner.setSelection(providerIds.indexOf(savedProviderId).coerceAtLeast(0))
+        /** Model entries for a provider: its presets plus a trailing "Custom…". */
+        fun modelEntries(provider: ProviderCatalog.Provider): List<ProviderCatalog.ModelOption> =
+            provider.models + ProviderCatalog.ModelOption(ProviderCatalog.CUSTOM_MODEL, "Custom…")
 
-        val savedModel = prefs.getString("model_name", "") ?: ""
+        fun updateModelSpinner(provider: ProviderCatalog.Provider) {
+            val entries = modelEntries(provider)
+            modelSpinner.adapter = spinnerAdapter(entries.map { it.label })
 
-        fun updateModelSpinner(providerId: String) {
-            val models = modelsByProvider[providerId] ?: emptyList()
-            val displayNames = models.map { it.second }
-            val modelAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, displayNames)
-            modelAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            modelSpinner.adapter = modelAdapter
-
-            val knownIndex = models.indexOfFirst { it.first == savedModel }
-            if (knownIndex >= 0) {
-                modelSpinner.setSelection(knownIndex)
-            } else if (savedModel.isNotEmpty()) {
-                // Select "Custom…" and pre-fill
-                modelSpinner.setSelection(models.size - 1)
-                customModelInput.setText(savedModel)
-                customModelInput.visibility = View.VISIBLE
-            } else {
-                modelSpinner.setSelection(0)
+            val savedModel = AIProviderFactory.savedModel(prefs, provider.id) ?: ""
+            val knownIndex = entries.indexOfFirst { it.id == savedModel }
+            when {
+                provider.models.isEmpty() -> {
+                    // Custom provider: the model is always typed in.
+                    modelSpinner.setSelection(entries.lastIndex)
+                    customModelInput.setText(savedModel)
+                    customModelInput.visibility = View.VISIBLE
+                }
+                knownIndex >= 0 -> {
+                    modelSpinner.setSelection(knownIndex)
+                    customModelInput.visibility = View.GONE
+                }
+                savedModel.isNotEmpty() -> {
+                    modelSpinner.setSelection(entries.lastIndex)
+                    customModelInput.setText(savedModel)
+                    customModelInput.visibility = View.VISIBLE
+                }
+                else -> modelSpinner.setSelection(0)
             }
         }
 
+        providerSpinner.adapter = spinnerAdapter(providers.map { it.displayName })
+        val savedProviderId = prefs.getString("provider_id", ProviderCatalog.GOOGLE) ?: ProviderCatalog.GOOGLE
+        providerSpinner.setSelection(
+            providers.indexOfFirst { it.id == savedProviderId }.coerceAtLeast(0)
+        )
+
         providerSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val providerId = providerIds[position]
+                val provider = providers[position]
 
-                // Update API key label and field
-                apiKeyLabel.text = when (providerId) {
-                    AIProviderFactory.PROVIDER_GOOGLE -> "Google AI Studio Key"
-                    AIProviderFactory.PROVIDER_OPENAI -> "OpenAI API Key"
-                    AIProviderFactory.PROVIDER_GROQ   -> "Groq API Key"
-                    AIProviderFactory.PROVIDER_OLLAMA -> "API Key (not required)"
-                    else -> "API Key"
-                }
-                apiKeyInput.setText(prefs.getString(AIProviderFactory.apiKeyPrefFor(providerId), ""))
+                apiKeyLabel.text = provider.apiKeyLabel
+                apiKeyInput.setText(prefs.getString(AIProviderFactory.apiKeyPrefFor(provider.id), ""))
 
-                // Show/hide Ollama URL row
-                val isOllama = providerId == AIProviderFactory.PROVIDER_OLLAMA
-                ollamaUrlLabel.visibility = if (isOllama) View.VISIBLE else View.GONE
-                ollamaUrlInput.visibility = if (isOllama) View.VISIBLE else View.GONE
-                if (isOllama) {
-                    ollamaUrlInput.setText(prefs.getString("ollama_base_url", "http://localhost:11434"))
+                val showBaseUrl = provider.allowsCustomBaseUrl
+                baseUrlLabel.visibility = if (showBaseUrl) View.VISIBLE else View.GONE
+                baseUrlInput.visibility = if (showBaseUrl) View.VISIBLE else View.GONE
+                if (showBaseUrl) {
+                    val savedUrl = prefs.getString(AIProviderFactory.baseUrlPrefFor(provider.id), null)
+                        ?: if (provider.id == ProviderCatalog.OLLAMA) {
+                            prefs.getString("ollama_base_url", null)
+                        } else null
+                    baseUrlInput.setText(savedUrl ?: provider.baseUrl ?: "")
+                    baseUrlInput.hint = provider.baseUrl ?: "https://example.com/v1"
                 }
 
-                // Update provider hint
-                providerHint.text = providerHints[providerId] ?: ""
-
-                updateModelSpinner(providerId)
+                providerHint.text = provider.hint
+                updateModelSpinner(provider)
             }
+
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
         modelSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val providerId = providerIds[providerSpinner.selectedItemPosition]
-                val models = modelsByProvider[providerId] ?: emptyList()
-                val isCustom = models.getOrNull(position)?.first == "__custom__"
+                val provider = providers[providerSpinner.selectedItemPosition]
+                val entries = modelEntries(provider)
+                val isCustom = entries.getOrNull(position)?.id == ProviderCatalog.CUSTOM_MODEL
                 customModelInput.visibility = if (isCustom) View.VISIBLE else View.GONE
                 if (!isCustom) customModelInput.text.clear()
             }
+
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
         saveBtn.setOnClickListener {
-            val providerId = providerIds[providerSpinner.selectedItemPosition]
+            val provider = providers[providerSpinner.selectedItemPosition]
             val apiKey = apiKeyInput.text.toString().trim()
-            val models = modelsByProvider[providerId] ?: emptyList()
-            val selectedModelEntry = models.getOrNull(modelSpinner.selectedItemPosition)
-            val modelId = if (selectedModelEntry?.first == "__custom__")
+            val entries = modelEntries(provider)
+            val selected = entries.getOrNull(modelSpinner.selectedItemPosition)
+            val modelId = if (selected?.id == ProviderCatalog.CUSTOM_MODEL || provider.models.isEmpty()) {
                 customModelInput.text.toString().trim()
-            else
-                selectedModelEntry?.first ?: ""
+            } else {
+                selected?.id ?: ""
+            }
 
-            if (apiKey.isEmpty() && providerId != AIProviderFactory.PROVIDER_OLLAMA) {
+            if (provider.requiresApiKey && apiKey.isEmpty()) {
                 Toast.makeText(this, "Please enter an API key", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -161,17 +140,36 @@ class SettingsActivity : ComponentActivity() {
                 return@setOnClickListener
             }
 
+            var normalizedBaseUrl: String? = null
+            if (provider.allowsCustomBaseUrl) {
+                normalizedBaseUrl = UrlRules.normalizeBaseUrl(baseUrlInput.text.toString())
+                if (normalizedBaseUrl == null) {
+                    Toast.makeText(
+                        this,
+                        "That base URL can't be used. Remote servers need https://; " +
+                            "http:// is only allowed for local/LAN addresses.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@setOnClickListener
+                }
+            }
+
             val editor = prefs.edit()
-                .putString("provider_id", providerId)
-                .putString(AIProviderFactory.apiKeyPrefFor(providerId), apiKey)
+                .putString("provider_id", provider.id)
+                .putString(AIProviderFactory.apiKeyPrefFor(provider.id), apiKey)
+                .putString(AIProviderFactory.modelPrefFor(provider.id), modelId)
+                // Legacy shared model pref, kept in sync for older code paths.
                 .putString("model_name", modelId)
 
-            // Keep legacy key in sync when Google is selected
-            if (providerId == AIProviderFactory.PROVIDER_GOOGLE) {
-                editor.putString("api_key", apiKey)
+            if (normalizedBaseUrl != null) {
+                editor.putString(AIProviderFactory.baseUrlPrefFor(provider.id), normalizedBaseUrl)
+                if (provider.id == ProviderCatalog.OLLAMA) {
+                    editor.putString("ollama_base_url", normalizedBaseUrl)
+                }
             }
-            if (providerId == AIProviderFactory.PROVIDER_OLLAMA) {
-                editor.putString("ollama_base_url", ollamaUrlInput.text.toString().trim())
+            // Keep the legacy key in sync when Google is selected (older versions read it).
+            if (provider.id == ProviderCatalog.GOOGLE) {
+                editor.putString("api_key", apiKey)
             }
             editor.apply()
 
