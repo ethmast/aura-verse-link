@@ -31,13 +31,9 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
-        val providerId = prefs.getString("provider_id", null)
+        // A legacy key alone counts as configured: the service migrates it on start.
         val hasLegacyKey = !prefs.getString("api_key", null).isNullOrEmpty()
-        val hasNewKey = providerId != null && (
-            !prefs.getString(AIProviderFactory.apiKeyPrefFor(providerId), null).isNullOrEmpty()
-            || providerId == AIProviderFactory.PROVIDER_OLLAMA
-        )
-        if (!hasLegacyKey && !hasNewKey) {
+        if (!hasLegacyKey && !AIProviderFactory.isConfigured(prefs)) {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
     }
@@ -83,7 +79,7 @@ class MainActivity : ComponentActivity() {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "Automatically detect and open Bible verses mentioned in your environment using Gemini AI.",
+                            text = "Automatically detect and open Bible verses mentioned in your environment, using the AI provider you choose in Settings.",
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
