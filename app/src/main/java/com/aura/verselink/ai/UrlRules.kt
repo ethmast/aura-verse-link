@@ -1,1 +1,75 @@
-cGFja2FnZSBjb20uYXVyYS52ZXJzZWxpbmsuYWkKCmltcG9ydCBqYXZhLm5ldC5VUkkKCi8qKgogKiBSdWxlcyBmb3IgdXNlci1zdXBwbGllZCBiYXNlIFVSTHMgKE9sbGFtYSwgQ3VzdG9tIHByb3ZpZGVyKS4KICoKICogUmVtb3RlIGVuZHBvaW50cyBtdXN0IHVzZSBodHRwcy4gUGxhaW4gaHR0cCBpcyBhY2NlcHRlZCBvbmx5IGZvcgogKiBsb29wYmFjayAvIHByaXZhdGUtTEFOIGhvc3RzLCB3aGljaCBpcyBleGFjdGx5IHRoZSBsb2NhbC1zZXJ2ZXIgY2FzZQogKiAoT2xsYW1hLCBMTSBTdHVkaW8sIGxsYW1hLmNwcCkgdGhhdCBuZWVkcyBpdC4gVGhlIG1hbmlmZXN0IGVuYWJsZXMKICogY2xlYXJ0ZXh0IHRyYWZmaWMgZm9yIHRob3NlIGNhbGxzLCBzbyB0aGlzIGNoZWNrIGlzIHdoYXQga2VlcHMgYQogKiB0eXBvJ2Qgb3IgaG9zdGlsZSBodHRwOi8vIFVSTCBmcm9tIHNlbmRpbmcgYW4gQVBJIGtleSBpbiB0aGUgY2xlYXIuCiAqLwpvYmplY3QgVXJsUnVsZXMgewoKICAgIC8qKgogICAgICogTm9ybWFsaXplcyBhIHVzZXItZW50ZXJlZCBiYXNlIFVSTCBmb3IgYW4gT3BlbkFJLWNvbXBhdGlibGUgQVBJOgogICAgICogdHJpbXMgd2hpdGVzcGFjZSBhbmQgdHJhaWxpbmcgc2xhc2hlcywgc3RyaXBzIGFuIGFjY2lkZW50YWxseSBwYXN0ZWQKICAgICAqIHRyYWlsaW5nICIvY2hhdC9jb21wbGV0aW9ucyIsIGFuZCBhcHBlbmRzICIvdjEiIHdoZW4gdGhlIFVSTCBpcyBhIGJhcmUKICAgICAqIGhvc3QgKG5vIHBhdGgpLCBzaW5jZSBldmVyeSBjb21wYXRpYmxlIHNlcnZlciBtb3VudHMgdGhlIEFQSSB0aGVyZS4KICAgICAqIFJldHVybnMgbnVsbCB3aGVuIHRoZSBVUkwgaXMgdW51c2FibGUuCiAgICAgKi8KICAgIGZ1biBub3JtYWxpemVCYXNlVXJsKHJhdzogU3RyaW5nPyk6IFN0cmluZz8gewogICAgICAgIHZhciB1cmwgPSByYXc/LnRyaW0oKT8udHJpbUVuZCgnLycpID86IHJldHVybiBudWxsCiAgICAgICAgaWYgKHVybC5pc0VtcHR5KCkpIHJldHVybiBudWxsCiAgICAgICAgaWYgKHVybC5lbmRzV2l0aCgiL2NoYXQvY29tcGxldGlvbnMiKSkgewogICAgICAgICAgICB1cmwgPSB1cmwucmVtb3ZlU3VmZml4KCIvY2hhdC9jb21wbGV0aW9ucyIpLnRyaW1FbmQoJy8nKQogICAgICAgIH0KICAgICAgICB2YWwgdXJpID0gdHJ5IHsKICAgICAgICAgICAgVVJJKHVybCkKICAgICAgICB9IGNhdGNoIChlOiBFeGNlcHRpb24pIHsKICAgICAgICAgICAgcmV0dXJuIG51bGwKICAgICAgICB9CiAgICAgICAgaWYgKHVyaS5zY2hlbWUgPT0gbnVsbCB8fCB1cmkuaG9zdCA9PSBudWxsKSByZXR1cm4gbnVsbAogICAgICAgIGlmICh1cmkuc2NoZW1lICE9ICJodHRwIiAmJiB1cmkuc2NoZW1lICE9ICJodHRwcyIpIHJldHVybiBudWxsCiAgICAgICAgaWYgKCFpc1VybEFsbG93ZWQodXJsKSkgcmV0dXJuIG51bGwKICAgICAgICB2YWwgcGF0aCA9IHVyaS5wYXRoPy50cmltRW5kKCcvJykgPzogIiIKICAgICAgICByZXR1cm4gaWYgKHBhdGguaXNFbXB0eSgpKSAiJHVybC92MSIgZWxzZSB1cmwKICAgIH0KCiAgICAvKiogaHR0cHMgYW55d2hlcmU7IGh0dHAgb25seSBmb3IgbG9vcGJhY2sgLyBwcml2YXRlIC8gbGluay1sb2NhbCAvIC5sb2NhbCBob3N0cy4gKi8KICAgIGZ1biBpc1VybEFsbG93ZWQodXJsOiBTdHJpbmcpOiBCb29sZWFuIHsKICAgICAgICB2YWwgdXJpID0gdHJ5IHsKICAgICAgICAgICAgVVJJKHVybC50cmltKCkpCiAgICAgICAgfSBjYXRjaCAoZTogRXhjZXB0aW9uKSB7CiAgICAgICAgICAgIHJldHVybiBmYWxzZQogICAgICAgIH0KICAgICAgICByZXR1cm4gd2hlbiAodXJpLnNjaGVtZSkgewogICAgICAgICAgICAiaHR0cHMiIC0+IHVyaS5ob3N0ICE9IG51bGwKICAgICAgICAgICAgImh0dHAiIC0+IHVyaS5ob3N0ICE9IG51bGwgJiYgaXNMb2NhbEhvc3QodXJpLmhvc3QhISkKICAgICAgICAgICAgZWxzZSAtPiBmYWxzZQogICAgICAgIH0KICAgIH0KCiAgICBmdW4gaXNMb2NhbEhvc3QoaG9zdDogU3RyaW5nKTogQm9vbGVhbiB7CiAgICAgICAgdmFsIGggPSBob3N0LnRyaW0oKS50cmltKCdbJywgJ10nKS5sb3dlcmNhc2UoKQogICAgICAgIHJldHVybiBoID09ICJsb2NhbGhvc3QiIHx8CiAgICAgICAgICAgIGguZW5kc1dpdGgoIi5sb2NhbCIpIHx8CiAgICAgICAgICAgIGggPT0gIjo6MSIgfHwKICAgICAgICAgICAgaXNQcml2YXRlSXB2NChoKQogICAgfQoKICAgIHByaXZhdGUgZnVuIGlzUHJpdmF0ZUlwdjQoaG9zdDogU3RyaW5nKTogQm9vbGVhbiB7CiAgICAgICAgdmFsIHBhcnRzID0gaG9zdC5zcGxpdCgiLiIpCiAgICAgICAgaWYgKHBhcnRzLnNpemUgIT0gNCkgcmV0dXJuIGZhbHNlCiAgICAgICAgdmFsIG9jdGV0cyA9IHBhcnRzLm1hcCB7IGl0LnRvSW50T3JOdWxsKCkgPzogcmV0dXJuIGZhbHNlIH0KICAgICAgICBpZiAob2N0ZXRzLmFueSB7IGl0ICFpbiAwLi4yNTUgfSkgcmV0dXJuIGZhbHNlCiAgICAgICAgdmFsIChhLCBiKSA9IG9jdGV0cwogICAgICAgIHJldHVybiBhID09IDEyNyB8fCAgICAgICAgICAgICAgICAgICAgICAgLy8gbG9vcGJhY2sKICAgICAgICAgICAgYSA9PSAxMCB8fCAgICAgICAgICAgICAgICAgICAgICAgICAgIC8vIDEwLjAuMC4wLzgKICAgICAgICAgICAgKGEgPT0gMTcyICYmIGIgaW4gMTYuLjMxKSB8fCAgICAgICAgIC8vIDE3Mi4xNi4wLjAvMTIKICAgICAgICAgICAgKGEgPT0gMTkyICYmIGIgPT0gMTY4KSB8fCAgICAgICAgICAgIC8vIDE5Mi4xNjguMC4wLzE2CiAgICAgICAgICAgIChhID09IDE2OSAmJiBiID09IDI1NCkgICAgICAgICAgICAgICAvLyBsaW5rLWxvY2FsCiAgICB9Cn0K
+package com.aura.verselink.ai
+
+import java.net.URI
+
+/**
+ * Rules for user-supplied base URLs (Ollama, Custom provider).
+ *
+ * Remote endpoints must use https. Plain http is accepted only for
+ * loopback / private-LAN hosts, which is exactly the local-server case
+ * (Ollama, LM Studio, llama.cpp) that needs it. The manifest enables
+ * cleartext traffic for those calls, so this check is what keeps a
+ * typo'd or hostile http:// URL from sending an API key in the clear.
+ */
+object UrlRules {
+
+    /**
+     * Normalizes a user-entered base URL for an OpenAI-compatible API:
+     * trims whitespace and trailing slashes, strips an accidentally pasted
+     * trailing "/chat/completions", and appends "/v1" when the URL is a bare
+     * host (no path), since every compatible server mounts the API there.
+     * Returns null when the URL is unusable.
+     */
+    fun normalizeBaseUrl(raw: String?): String? {
+        var url = raw?.trim()?.trimEnd('/') ?: return null
+        if (url.isEmpty()) return null
+        if (url.endsWith("/chat/completions")) {
+            url = url.removeSuffix("/chat/completions").trimEnd('/')
+        }
+        val uri = try {
+            URI(url)
+        } catch (e: Exception) {
+            return null
+        }
+        if (uri.scheme == null || uri.host == null) return null
+        if (uri.scheme != "http" && uri.scheme != "https") return null
+        if (!isUrlAllowed(url)) return null
+        val path = uri.path?.trimEnd('/') ?: ""
+        return if (path.isEmpty()) "$url/v1" else url
+    }
+
+    /** https anywhere; http only for loopback / private / link-local / .local hosts. */
+    fun isUrlAllowed(url: String): Boolean {
+        val uri = try {
+            URI(url.trim())
+        } catch (e: Exception) {
+            return false
+        }
+        return when (uri.scheme) {
+            "https" -> uri.host != null
+            "http" -> uri.host != null && isLocalHost(uri.host!!)
+            else -> false
+        }
+    }
+
+    fun isLocalHost(host: String): Boolean {
+        val h = host.trim().trim('[', ']').lowercase()
+        return h == "localhost" ||
+            h.endsWith(".local") ||
+            h == "::1" ||
+            isPrivateIpv4(h)
+    }
+
+    private fun isPrivateIpv4(host: String): Boolean {
+        val parts = host.split(".")
+        if (parts.size != 4) return false
+        val octets = parts.map { it.toIntOrNull() ?: return false }
+        if (octets.any { it !in 0..255 }) return false
+        val (a, b) = octets
+        return a == 127 ||                       // loopback
+            a == 10 ||                           // 10.0.0.0/8
+            (a == 172 && b in 16..31) ||         // 172.16.0.0/12
+            (a == 192 && b == 168) ||            // 192.168.0.0/16
+            (a == 169 && b == 254)               // link-local
+    }
+}
