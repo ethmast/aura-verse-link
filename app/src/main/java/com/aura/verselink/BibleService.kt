@@ -177,13 +177,13 @@ class BibleService : Service(), RecognitionListener {
 
         aiProvider = AIProviderFactory.fromPrefs(prefs, httpClient)
         if (aiProvider == null) {
-            addLog("Service", "No API key found — stopping")
+            addLog("Service", "Provider isn't fully configured (key, model, or base URL missing) — stopping")
             stopSelf()
             return
         }
 
         val providerId = prefs.getString("provider_id", AIProviderFactory.PROVIDER_GOOGLE) ?: ""
-        val modelName  = prefs.getString("model_name", "") ?: ""
+        val modelName  = AIProviderFactory.savedModel(prefs, providerId) ?: ""
         addLog("Service", "Starting with provider: $providerId model: $modelName")
 
         startForeground(1, getStickyNotification("Listening for sermon references..."))
@@ -330,9 +330,11 @@ class BibleService : Service(), RecognitionListener {
 
             } catch (e: AIError) {
                 val userMsg = when (e) {
-                    is AIError.RateLimitError -> "Rate limit hit. Try a different model or wait before re-enabling."
-                    is AIError.AuthError      -> "Invalid API key. Open Settings to fix it."
-                    is AIError.NetworkError   -> "AI error: ${e.message}"
+                    is AIError.RateLimitError      -> "Rate limit hit. Try a different model or wait before re-enabling."
+                    is AIError.AuthError           -> "Provider rejected the request. Check your API key and account credit in Settings."
+                    is AIError.NetworkError        -> "AI error: ${e.message}"
+                    is AIError.ApiError            -> "AI error: ${e.message}"
+                    is AIError.InvalidResponseError -> "AI error: ${e.message}"
                 }
                 addLog("AI", "Error: ${e.message}")
                 sendErrorNotification(userMsg)

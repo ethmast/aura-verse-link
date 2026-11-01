@@ -14,8 +14,15 @@
         </intent>
     </queries>
 
+    <!-- usesCleartextTraffic: local AI servers (Ollama, LM Studio, …) are
+         commonly served over plain http on the LAN. Cleartext is enabled at
+         the platform level, but UrlRules in the provider layer only accepts
+         http:// URLs for loopback/private-LAN hosts — every remote provider
+         is required to use https. Backup is on, but the backup rules exclude
+         SharedPreferences so API keys never leave the device via backup. -->
     <application
         android:allowBackup="true"
+        android:usesCleartextTraffic="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"

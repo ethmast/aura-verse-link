@@ -50,17 +50,17 @@
             android:layout_marginBottom="16dp"/>
 
         <TextView
-            android:id="@+id/ollamaUrlLabel"
+            android:id="@+id/baseUrlLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ollama Base URL"
+            android:text="Base URL"
             android:textStyle="bold"
             android:textSize="16sp"
             android:layout_marginBottom="4dp"
             android:visibility="gone"/>
 
         <EditText
-            android:id="@+id/ollamaUrlInput"
+            android:id="@+id/baseUrlInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="http://192.168.1.x:11434"
@@ -86,7 +86,7 @@
             android:id="@+id/customModelInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Enter model name (e.g. gemini-1.5-pro)"
+            android:hint="Enter model name (e.g. openai/gpt-oss-20b)"
             android:visibility="gone"
             android:layout_marginBottom="8dp"/>
 
