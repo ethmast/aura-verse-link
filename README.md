@@ -17,6 +17,7 @@ Built with privacy in mind. On compatible devices, the app performs primary audi
 * **Hands-Free Experience:** Keep your focus on the sermon without manually searching for verses.
 * **Powered by AI:** High-accuracy formatting and context detection.
 * **Bring Your Own Provider:** Google, OpenAI, Groq, OpenRouter, DeepSeek, Cerebras, local Ollama, or any other OpenAI-compatible API — one key, your choice of model.
+* **Or Aura Credits:** Prefer not to manage an API key? Sign in with Google, buy a credit pack in the app, and formatting runs through the Aura backend instead. BYOK remains fully available — see [Aura Credits](#-aura-credits-optional).
 * **Deep Integration:** Direct deep-linking into YouVersion for a seamless transition from audio to text.
 * **Lightweight:** Optimized to run in the background with minimal battery impact.
 
@@ -36,6 +37,16 @@ Aura sends only the short transcript snippet around a likely reference to the pr
 | **Custom** | Depends on the server | Any other OpenAI-compatible endpoint: Together, Mistral, xAI, Fireworks, LM Studio (`http://<pc-ip>:1234`), a llama.cpp server, a LiteLLM proxy, etc. Remote servers must use `https://`; plain `http://` is accepted only for local/LAN addresses. |
 
 Your API keys are stored only on your device, are excluded from Android cloud backup and device transfer, and are never written to logs.
+
+## 💳 Aura Credits (optional)
+
+Aura Credits is the no-API-key alternative to the providers above. Pick **Aura Credits** as the AI provider in Settings, then:
+
+1. **Sign in with Google.** The app requests a Google ID token and exchanges it with the Aura backend for a session. New accounts receive a small starter credit. The session is stored only on your device (excluded from backup and device transfer, like API keys) and lasts 30 days.
+2. **Buy credit packs** right in Settings via Google Play Billing. Purchases are verified server-side before credits land on your balance — the granted amount comes only from the backend's product map, never from the client — and a pack is consumed only after its grant succeeds, so a purchase interrupted by a crash or a dead battery is finished automatically on the next app start rather than lost.
+3. **Listen as usual.** Detected snippets go to the backend, which formats them with the identical extractor prompt BYOK mode uses, and charges your balance the actual per-call cost (a fraction of a cent). Out of credits, or hit the daily cap, and the app tells you instead of failing silently.
+
+Privacy in credits mode: only the short transcript snippet around a detected reference is sent to the backend — exactly what a BYOK provider would receive. Nothing else changes: speech recognition stays on-device, and switching back to any BYOK provider takes effect immediately with your saved keys untouched. You can sign out, or delete your credits account and all its server-side data, from the same Settings panel at any time.
 
 ## 🛠️ Initial Setup
 

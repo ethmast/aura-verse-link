@@ -69,6 +69,7 @@
             android:layout_marginBottom="16dp"/>
 
         <TextView
+            android:id="@+id/modelLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="AI Model"
@@ -89,6 +90,86 @@
             android:hint="Enter model name (e.g. openai/gpt-oss-20b)"
             android:visibility="gone"
             android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:id="@+id/creditsSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Aura Credits Account"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/creditsAccountStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Not signed in"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/creditsBalance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp"/>
+
+            <Button
+                android:id="@+id/creditsSignInButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sign in with Google"/>
+
+            <Button
+                android:id="@+id/creditsSignOutButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sign out"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/buyCreditsLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Buy credits"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp"
+                android:visibility="gone"/>
+
+            <LinearLayout
+                android:id="@+id/creditsProductsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"/>
+
+            <TextView
+                android:id="@+id/creditsProductsStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#555"
+                android:visibility="gone"
+                android:layout_marginBottom="4dp"/>
+
+            <Button
+                android:id="@+id/creditsDeleteButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Delete account and data"
+                android:visibility="gone"/>
+
+        </LinearLayout>
 
         <Button
             android:id="@+id/saveButton"
