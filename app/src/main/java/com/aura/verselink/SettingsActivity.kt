@@ -23,7 +23,7 @@ import com.aura.verselink.credits.CreditsClient
 import com.aura.verselink.credits.CreditsException
 import com.aura.verselink.credits.CreditsStore
 import com.aura.verselink.credits.GoogleSignIn
-import com.aura.verselink.credits.MoneyFormat
+import com.aura.verselink.credits.CreditsFormat
 import kotlinx.coroutines.launch
 
 /**
@@ -107,7 +107,7 @@ class SettingsActivity : ComponentActivity() {
                     if (email != null) "Signed in as $email" else "Signed in"
                 creditsBalance.visibility = View.VISIBLE
                 creditsBalance.text =
-                    "Balance: ${MoneyFormat.formatMicros(creditsStore.cachedBalanceMicros())}"
+                    "Balance: ${CreditsFormat.formatCredits(creditsStore.cachedBalanceMicros())}"
                 creditsSignInButton.visibility = View.GONE
                 creditsSignOutButton.visibility = View.VISIBLE
                 creditsDeleteButton.visibility = View.VISIBLE
@@ -163,7 +163,7 @@ class SettingsActivity : ComponentActivity() {
                     val result = creditsClient.signInWithGoogle(idToken)
                     toast(
                         if (result.isNewUser) {
-                            "Signed in — welcome! A starter credit was added to your balance."
+                            "Signed in — welcome! 1,000 starter credits were added to your balance."
                         } else {
                             "Signed in"
                         }

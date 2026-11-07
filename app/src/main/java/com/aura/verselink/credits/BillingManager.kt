@@ -194,7 +194,7 @@ class BillingManager(
             onBalanceUpdated(verify.balanceMicros)
             onEvent(
                 if (verify.granted) {
-                    "Added ${MoneyFormat.formatMicros(verify.grantedMicros)} of credits"
+                    "Added ${CreditsFormat.formatCredits(verify.grantedMicros)}"
                 } else {
                     "Purchase confirmed — credits were already on your balance"
                 }

@@ -123,6 +123,12 @@
                 android:visibility="gone"
                 android:layout_marginBottom="8dp"/>
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Each verse lookup costs 1 credit."
+                android:layout_marginBottom="8dp"/>
+
             <Button
                 android:id="@+id/creditsSignInButton"
                 android:layout_width="match_parent"
