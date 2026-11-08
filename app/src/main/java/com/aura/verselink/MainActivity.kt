@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.aura.verselink.ai.AIProviderFactory
+import com.aura.verselink.credits.CreditsStore
 import com.aura.verselink.ui.theme.AuraVerseLinkTheme
 
 class MainActivity : ComponentActivity() {
@@ -33,7 +34,11 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
         // A legacy key alone counts as configured: the service migrates it on start.
         val hasLegacyKey = !prefs.getString("api_key", null).isNullOrEmpty()
-        if (!hasLegacyKey && !AIProviderFactory.isConfigured(prefs)) {
+        // Credits mode counts as configured when a live session exists —
+        // the factory deliberately builds no AIProvider for it.
+        val creditsReady = AIProviderFactory.isCreditsSelected(prefs) &&
+            CreditsStore(prefs).hasValidSession()
+        if (!hasLegacyKey && !AIProviderFactory.isConfigured(prefs) && !creditsReady) {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
     }

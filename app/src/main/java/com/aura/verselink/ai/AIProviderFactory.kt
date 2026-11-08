@@ -17,6 +17,7 @@ import okhttp3.OkHttpClient
  */
 object AIProviderFactory {
 
+    const val PROVIDER_CREDITS = ProviderCatalog.CREDITS
     const val PROVIDER_GOOGLE = ProviderCatalog.GOOGLE
     const val PROVIDER_OPENAI = ProviderCatalog.OPENAI
     const val PROVIDER_GROQ = ProviderCatalog.GROQ
@@ -28,6 +29,10 @@ object AIProviderFactory {
 
     fun fromPrefs(prefs: SharedPreferences, client: OkHttpClient = OkHttpClient()): AIProvider? {
         val providerId = prefs.getString("provider_id", PROVIDER_GOOGLE) ?: PROVIDER_GOOGLE
+        // Aura Credits is not an AIProvider — BibleService routes it to the
+        // credits backend client instead. Null here keeps every BYOK caller
+        // behaving exactly as before.
+        if (providerId == PROVIDER_CREDITS) return null
         val definition = ProviderCatalog.get(providerId) ?: return null
 
         val modelName = savedModel(prefs, providerId) ?: return null
@@ -86,6 +91,10 @@ object AIProviderFactory {
 
     /** True when the saved settings are complete enough to run the service. */
     fun isConfigured(prefs: SharedPreferences): Boolean = fromPrefs(prefs) != null
+
+    /** True when Aura Credits is the selected AI source. */
+    fun isCreditsSelected(prefs: SharedPreferences): Boolean =
+        prefs.getString("provider_id", PROVIDER_GOOGLE) == PROVIDER_CREDITS
 
     fun apiKeyPrefFor(providerId: String): String = "api_key_$providerId"
     fun modelPrefFor(providerId: String): String = "model_name_$providerId"

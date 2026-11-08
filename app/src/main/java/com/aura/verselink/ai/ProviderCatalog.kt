@@ -16,6 +16,10 @@ package com.aura.verselink.ai
  */
 object ProviderCatalog {
 
+    /** Aura Credits: no key of your own — formatting runs through the Aura
+     *  backend after a Google sign-in. Not an [AIProvider]; the credits
+     *  package serves it, and the factory returns null for this id. */
+    const val CREDITS = "credits"
     const val GOOGLE = "google"
     const val OPENAI = "openai"
     const val GROQ = "groq"
@@ -45,10 +49,29 @@ object ProviderCatalog {
         /** Extra headers sent with every request (e.g. OpenRouter app attribution). */
         val extraHeaders: Map<String, String> = emptyMap(),
         /** OpenAI's newer models reject `max_tokens` in favour of `max_completion_tokens`. */
-        val useMaxCompletionTokens: Boolean = false
+        val useMaxCompletionTokens: Boolean = false,
+        /** True only for the Aura Credits entry, which Settings renders as an
+         *  account panel instead of key/model fields. */
+        val isCredits: Boolean = false
     )
 
     val providers: List<Provider> = listOf(
+        Provider(
+            id = CREDITS,
+            displayName = "Aura Credits",
+            baseUrl = null,
+            requiresApiKey = false,
+            allowsCustomBaseUrl = false,
+            defaultModel = "",
+            models = emptyList(),
+            apiKeyLabel = "",
+            hint = "No API key of your own. Sign in with Google below and buy " +
+                "credit packs; formatting runs through the Aura backend with " +
+                "the same extractor used for BYOK providers. Only the short " +
+                "transcript snippet is sent, exactly as with a BYOK provider. " +
+                "Your BYOK providers and keys stay untouched — switch back any time.",
+            isCredits = true
+        ),
         Provider(
             id = GOOGLE,
             displayName = "Google AI Studio",

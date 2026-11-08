@@ -20,6 +20,10 @@ import androidx.core.app.NotificationCompat
 import com.aura.verselink.ai.AIError
 import com.aura.verselink.ai.AIProvider
 import com.aura.verselink.ai.AIProviderFactory
+import com.aura.verselink.ai.ReferenceExtractor
+import com.aura.verselink.credits.CreditsClient
+import com.aura.verselink.credits.CreditsException
+import com.aura.verselink.credits.CreditsStore
 import okhttp3.Protocol
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +42,10 @@ import java.util.Locale
 class BibleService : Service(), RecognitionListener {
 
     companion object {
+        /** Interval between /health pings that keep the sleeping credits
+         *  backend warm while listening (credits mode only). */
+        const val KEEP_WARM_INTERVAL_MS = 4 * 60 * 1000L
+
         val logFlow = MutableStateFlow<List<String>>(emptyList())
         val testTrigger = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
@@ -68,6 +76,11 @@ class BibleService : Service(), RecognitionListener {
         .callTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
         .build()
     private var aiProvider: AIProvider? = null
+
+    // Aura Credits mode (alternative to a BYOK provider): formatting goes
+    // through the credits backend instead of aiProvider.
+    private var creditsClient: CreditsClient? = null
+    private var creditsStore: CreditsStore? = null
 
     // --- Normalization & Maps ---
     private val verbalVariations = mapOf(
@@ -175,16 +188,29 @@ class BibleService : Service(), RecognitionListener {
                 .apply()
         }
 
-        aiProvider = AIProviderFactory.fromPrefs(prefs, httpClient)
-        if (aiProvider == null) {
-            addLog("Service", "Provider isn't fully configured (key, model, or base URL missing) — stopping")
-            stopSelf()
-            return
-        }
+        if (AIProviderFactory.isCreditsSelected(prefs)) {
+            val store = CreditsStore(prefs)
+            creditsStore = store
+            if (!store.hasValidSession()) {
+                addLog("Service", "Aura Credits selected but not signed in (or the session expired) — stopping")
+                stopSelf()
+                return
+            }
+            creditsClient = CreditsClient(store, httpClient)
+            addLog("Service", "Starting in Aura Credits mode")
+            startKeepWarm()
+        } else {
+            aiProvider = AIProviderFactory.fromPrefs(prefs, httpClient)
+            if (aiProvider == null) {
+                addLog("Service", "Provider isn't fully configured (key, model, or base URL missing) — stopping")
+                stopSelf()
+                return
+            }
 
-        val providerId = prefs.getString("provider_id", AIProviderFactory.PROVIDER_GOOGLE) ?: ""
-        val modelName  = AIProviderFactory.savedModel(prefs, providerId) ?: ""
-        addLog("Service", "Starting with provider: $providerId model: $modelName")
+            val providerId = prefs.getString("provider_id", AIProviderFactory.PROVIDER_GOOGLE) ?: ""
+            val modelName  = AIProviderFactory.savedModel(prefs, providerId) ?: ""
+            addLog("Service", "Starting with provider: $providerId model: $modelName")
+        }
 
         startForeground(1, getStickyNotification("Listening for sermon references..."))
         initRecognizer()
@@ -192,7 +218,24 @@ class BibleService : Service(), RecognitionListener {
         scope.launch {
             testTrigger.collect { text ->
                 addLog("Test", "Manual test: \"$text\"")
-                parseWithAI(text)
+                parseWithAI(text, isManualTest = true)
+            }
+        }
+    }
+
+    /**
+     * Credits mode only: the backend sleeps when idle on its free hosting
+     * plan, so ping /health as listening starts (waking it before the first
+     * reference is likely to be heard) and keep pinging every few minutes
+     * while this service lives. The job rides the service scope, so it ends
+     * automatically when listening stops. Pings are fire-and-forget.
+     */
+    private fun startKeepWarm() {
+        val client = creditsClient ?: return
+        scope.launch {
+            while (true) {
+                client.pingHealth()
+                delay(KEEP_WARM_INTERVAL_MS)
             }
         }
     }
@@ -275,7 +318,38 @@ class BibleService : Service(), RecognitionListener {
     }
 
     // --- AI Logic ---
-    private fun parseWithAI(rawText: String) {
+
+    /**
+     * Gets the extractor's raw reply for a transcript snippet. In credits
+     * mode the backend applies the identical prompt server-side, so it
+     * receives the raw transcript; in BYOK mode the prompt is built here
+     * exactly as before.
+     */
+    private suspend fun fetchFormattedResult(rawText: String): String {
+        creditsClient?.let { client ->
+            return client.format(rawText).result
+        }
+        val prompt = """
+            You are a strict extractor. Output ONLY the final answer. No preamble, no explanation, no <think> tags, no reasoning, no markdown.
+            Task: Extract Bible references (Book, Chapter, Verse) from the transcript.
+
+            Rules:
+            1. Return ONLY the USFM code(s), the book is a 3 character code. Use the format BOOK.CHAPTER.VERSE when a verse is mentioned (e.g., JHN.3.16); when only a chapter is mentioned, return BOOK.CHAPTER instead (e.g., 1KI.18). Never invent a verse number that was not mentioned.
+            2. If multiple references are found, return them separated by commas.
+            3. If a range of verses is specified in the same chapter return it as a range (e.g., JHN.3.16-18).
+            4. If NO valid reference (Book + Chapter at minimum) is found, return 'NONE'.
+            5. The reference might be "sandwiched" in the middle of long speech.
+            6. Ignore partial mentions like just a book name without a chapter.
+
+            Transcript: "$rawText"
+        """.trimIndent()
+
+        return withContext(Dispatchers.IO) {
+            aiProvider!!.generateContent(prompt)
+        }
+    }
+
+    private fun parseWithAI(rawText: String, isManualTest: Boolean = false) {
         if (isAiProcessing) return
         isAiProcessing = true
 
@@ -283,51 +357,38 @@ class BibleService : Service(), RecognitionListener {
 
         scope.launch {
             try {
-                val prompt = """
-                    You are a strict extractor. Output ONLY the final answer. No preamble, no explanation, no <think> tags, no reasoning, no markdown.
-                    Task: Extract Bible references (Book, Chapter, Verse) from the transcript.
-
-                    Rules:
-                    1. Return ONLY the USFM code(s) in the format BOOK.CHAPTER.VERSE the book is a 3 character code (e.g., JHN.3.16).
-                    2. If multiple references are found, return them separated by commas.
-                    3. If a range of verses is specified in the same chapter return it as a range (e.g., JHN.3.16-18).
-                    4. If NO valid reference (Book + Chapter at minimum) is found, return 'NONE'.
-                    5. The reference might be "sandwiched" in the middle of long speech.
-                    6. Ignore partial mentions like just a book name without a chapter.
-                    
-                    Transcript: "$rawText"
-                """.trimIndent()
-
-                val raw = withContext(Dispatchers.IO) {
-                    aiProvider!!.generateContent(prompt)
-                }.trim()
+                val raw = fetchFormattedResult(rawText).trim()
                 addLog("AI", "Raw response: $raw")
 
-                val validBookCodes = bibleBooks.values.toSet()
-
-                // Allow up to 4-char book codes (models often return e.g. 1TIM instead of 1TI).
-                // The lookbehind prevents matching TIM inside 1TIM.2.12.
-                // Each candidate is then normalized: we try the extracted code as-is, then
-                // progressively shorter prefixes, until we find a known USFM code.
-                val usfmRegex = Regex("(?<![A-Z0-9])[A-Z0-9]{2,4}\\.[0-9]+\\.[0-9]+(?:-[0-9]+)?")
-                val refs = usfmRegex.findAll(raw.uppercase())
-                    .mapNotNull { match ->
-                        val bookCode = match.value.substringBefore(".")
-                        val rest = match.value.substringAfter(".")
-                        val validCode = (bookCode.length downTo 2)
-                            .map { bookCode.take(it) }
-                            .firstOrNull { it in validBookCodes }
-                        validCode?.let { "$it.$rest" }
-                    }
-                    .distinct()
-                    .toList()
+                val refs = ReferenceExtractor.extract(raw, bibleBooks.values.toSet())
 
                 addLog("AI", if (refs.isNotEmpty()) "Found: ${refs.joinToString()}" else "No references found")
 
                 for (ref in refs) {
-                    processDetectedReference(ref)
+                    processDetectedReference(ref, bypassDedupe = isManualTest)
                 }
 
+            } catch (e: CreditsException) {
+                val userMsg = when (e) {
+                    is CreditsException.SessionExpired -> {
+                        // Drop the dead session so Settings shows the
+                        // signed-out state and prompts a fresh sign-in.
+                        creditsStore?.clear()
+                        "Credits session expired. Open Settings and sign in again."
+                    }
+                    is CreditsException.InsufficientCredits ->
+                        "Out of Aura Credits. Open Settings to buy more."
+                    is CreditsException.DailyCap ->
+                        "Daily credits limit reached. It resets tomorrow — or use a BYOK provider in Settings."
+                    is CreditsException.NotConfigured ->
+                        "The credits service isn't available right now. Try again later."
+                    is CreditsException.Network ->
+                        "Couldn't reach the credits service. Check your connection."
+                    is CreditsException.Api, is CreditsException.SignInFailed ->
+                        "Credits error: ${e.message}"
+                }
+                addLog("AI", "Credits error: ${e.message}")
+                sendErrorNotification(userMsg)
             } catch (e: AIError) {
                 val userMsg = when (e) {
                     is AIError.RateLimitError      -> "Rate limit hit. Try a different model or wait before re-enabling."
@@ -347,14 +408,18 @@ class BibleService : Service(), RecognitionListener {
         }
     }
 
-    private fun processDetectedReference(ref: String) {
+    private fun processDetectedReference(ref: String, bypassDedupe: Boolean = false) {
         val currentTime = System.currentTimeMillis()
         val lastSeen = lastFoundReferences[ref] ?: 0L
 
-        if (currentTime - lastSeen > REFERENCE_EXPIRY) {
+        // A manual test always notifies: it is a deliberate check, not
+        // ambient listening, so the anti-spam window must not swallow it.
+        if (bypassDedupe || currentTime - lastSeen > REFERENCE_EXPIRY) {
             lastFoundReferences[ref] = currentTime
             addLog("Detect", "Verse found: $ref")
             sendDetectionNotification(ref)
+        } else {
+            addLog("Detect", "Duplicate $ref within 30s window — notification skipped")
         }
     }
 

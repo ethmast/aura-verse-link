@@ -5,14 +5,14 @@ plugins {
 
 android {
     namespace = "com.aura.verselink"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.aura.verselink"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 2
-        versionName = "1.1"
+        targetSdk = 36
+        versionCode = 7
+        versionName = "1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -52,6 +52,13 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.json:json:20231013")
+
+    // Aura Credits: Credential Manager sign-in (ID token for the backend)
+    // and Google Play Billing for credit packs.
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.billing.client)
 
     testImplementation(libs.junit)
     // Lets local unit tests exercise the real org.json response parsing

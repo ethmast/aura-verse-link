@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Settings palette, measured from the main screen: near-black
+         background #141118, card surface #48454E, lavender primary
+         #BB86FC (the Compose dark scheme's primary). -->
+    <color name="aura_background">#141118</color>
+    <color name="aura_card">#48454E</color>
+    <color name="aura_input">#231F27</color>
+    <color name="aura_on_surface">#E6E1E5</color>
+    <color name="aura_on_surface_variant">#CAC4D0</color>
+    <color name="aura_outline">#49454F</color>
+    <color name="aura_primary">#BB86FC</color>
+    <color name="aura_on_primary">#FF000000</color>
+    <color name="aura_error_container">#93000A</color>
+    <color name="aura_on_error_container">#FFDAD6</color>
+</resources>
