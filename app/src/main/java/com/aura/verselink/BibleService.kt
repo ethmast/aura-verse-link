@@ -218,7 +218,7 @@ class BibleService : Service(), RecognitionListener {
         scope.launch {
             testTrigger.collect { text ->
                 addLog("Test", "Manual test: \"$text\"")
-                parseWithAI(text)
+                parseWithAI(text, isManualTest = true)
             }
         }
     }
@@ -349,7 +349,7 @@ class BibleService : Service(), RecognitionListener {
         }
     }
 
-    private fun parseWithAI(rawText: String) {
+    private fun parseWithAI(rawText: String, isManualTest: Boolean = false) {
         if (isAiProcessing) return
         isAiProcessing = true
 
@@ -365,7 +365,7 @@ class BibleService : Service(), RecognitionListener {
                 addLog("AI", if (refs.isNotEmpty()) "Found: ${refs.joinToString()}" else "No references found")
 
                 for (ref in refs) {
-                    processDetectedReference(ref)
+                    processDetectedReference(ref, bypassDedupe = isManualTest)
                 }
 
             } catch (e: CreditsException) {
@@ -408,14 +408,18 @@ class BibleService : Service(), RecognitionListener {
         }
     }
 
-    private fun processDetectedReference(ref: String) {
+    private fun processDetectedReference(ref: String, bypassDedupe: Boolean = false) {
         val currentTime = System.currentTimeMillis()
         val lastSeen = lastFoundReferences[ref] ?: 0L
 
-        if (currentTime - lastSeen > REFERENCE_EXPIRY) {
+        // A manual test always notifies: it is a deliberate check, not
+        // ambient listening, so the anti-spam window must not swallow it.
+        if (bypassDedupe || currentTime - lastSeen > REFERENCE_EXPIRY) {
             lastFoundReferences[ref] = currentTime
             addLog("Detect", "Verse found: $ref")
             sendDetectionNotification(ref)
+        } else {
+            addLog("Detect", "Duplicate $ref within 30s window — notification skipped")
         }
     }
 
