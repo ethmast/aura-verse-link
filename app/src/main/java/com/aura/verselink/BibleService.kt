@@ -20,6 +20,7 @@ import androidx.core.app.NotificationCompat
 import com.aura.verselink.ai.AIError
 import com.aura.verselink.ai.AIProvider
 import com.aura.verselink.ai.AIProviderFactory
+import com.aura.verselink.ai.ReferenceExtractor
 import com.aura.verselink.credits.CreditsClient
 import com.aura.verselink.credits.CreditsException
 import com.aura.verselink.credits.CreditsStore
@@ -333,7 +334,7 @@ class BibleService : Service(), RecognitionListener {
             Task: Extract Bible references (Book, Chapter, Verse) from the transcript.
 
             Rules:
-            1. Return ONLY the USFM code(s) in the format BOOK.CHAPTER.VERSE the book is a 3 character code (e.g., JHN.3.16).
+            1. Return ONLY the USFM code(s), the book is a 3 character code. Use the format BOOK.CHAPTER.VERSE when a verse is mentioned (e.g., JHN.3.16); when only a chapter is mentioned, return BOOK.CHAPTER instead (e.g., 1KI.18). Never invent a verse number that was not mentioned.
             2. If multiple references are found, return them separated by commas.
             3. If a range of verses is specified in the same chapter return it as a range (e.g., JHN.3.16-18).
             4. If NO valid reference (Book + Chapter at minimum) is found, return 'NONE'.
@@ -359,24 +360,7 @@ class BibleService : Service(), RecognitionListener {
                 val raw = fetchFormattedResult(rawText).trim()
                 addLog("AI", "Raw response: $raw")
 
-                val validBookCodes = bibleBooks.values.toSet()
-
-                // Allow up to 4-char book codes (models often return e.g. 1TIM instead of 1TI).
-                // The lookbehind prevents matching TIM inside 1TIM.2.12.
-                // Each candidate is then normalized: we try the extracted code as-is, then
-                // progressively shorter prefixes, until we find a known USFM code.
-                val usfmRegex = Regex("(?<![A-Z0-9])[A-Z0-9]{2,4}\\.[0-9]+\\.[0-9]+(?:-[0-9]+)?")
-                val refs = usfmRegex.findAll(raw.uppercase())
-                    .mapNotNull { match ->
-                        val bookCode = match.value.substringBefore(".")
-                        val rest = match.value.substringAfter(".")
-                        val validCode = (bookCode.length downTo 2)
-                            .map { bookCode.take(it) }
-                            .firstOrNull { it in validBookCodes }
-                        validCode?.let { "$it.$rest" }
-                    }
-                    .distinct()
-                    .toList()
+                val refs = ReferenceExtractor.extract(raw, bibleBooks.values.toSet())
 
                 addLog("AI", if (refs.isNotEmpty()) "Found: ${refs.joinToString()}" else "No references found")
 
