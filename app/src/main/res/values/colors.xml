@@ -8,6 +8,11 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
+    <!-- Launcher icon background: the dark plum sampled from the Icon A
+         artwork (#1F0A1F), so the adaptive icon's foreground glyph sits on
+         exactly the color it was extracted from. -->
+    <color name="ic_launcher_background">#FF1F0A1F</color>
+
     <!-- Settings palette mirroring the Compose Material3 scheme in
          ui/theme/Theme.kt. These are the LIGHT values; values-night
          carries the dark ones measured from the main screen. -->

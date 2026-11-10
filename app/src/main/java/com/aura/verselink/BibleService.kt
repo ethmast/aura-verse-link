@@ -9,6 +9,8 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
@@ -45,6 +47,19 @@ class BibleService : Service(), RecognitionListener {
         /** Interval between /health pings that keep the sleeping credits
          *  backend warm while listening (credits mode only). */
         const val KEEP_WARM_INTERVAL_MS = 4 * 60 * 1000L
+
+        /** Channel for the persistent foreground-service notification.
+         *  Created at IMPORTANCE_LOW: silent, no pop-up — as unobtrusive as
+         *  it has always been. */
+        const val SERVICE_CHANNEL_ID = "BibleScannerChannel"
+
+        /** Channel for detected-verse alerts. A fresh id is required (not a
+         *  rename of the old one): Android locks a channel's importance when
+         *  it is first created, and BibleScannerChannel was created at
+         *  IMPORTANCE_LOW, which silently swallowed every alert posted to
+         *  it. Verse alerts therefore move to this new IMPORTANCE_HIGH
+         *  channel so they sound and pop up on screen by default. */
+        const val ALERTS_CHANNEL_ID = "verse_alerts_v2"
 
         val logFlow = MutableStateFlow<List<String>>(emptyList())
         val testTrigger = MutableSharedFlow<String>(extraBufferCapacity = 1)
@@ -175,6 +190,8 @@ class BibleService : Service(), RecognitionListener {
     // --- Lifecycle & Recognizer ---
     override fun onCreate() {
         super.onCreate()
+
+        createNotificationChannels()
 
         val prefs = getSharedPreferences("AuraPrefs", Context.MODE_PRIVATE)
 
@@ -428,11 +445,12 @@ class BibleService : Service(), RecognitionListener {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         val pendingIntent = PendingIntent.getActivity(this, reference.hashCode(), intent, PendingIntent.FLAG_IMMUTABLE)
 
-        val notification = NotificationCompat.Builder(this, "BibleScannerChannel")
+        val notification = NotificationCompat.Builder(this, ALERTS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_btn_speak_now)
             .setContentTitle("Verse Detected: $reference")
             .setContentText("Tap to open in YouVersion")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
@@ -448,7 +466,7 @@ class BibleService : Service(), RecognitionListener {
             this, "error".hashCode(), openAppIntent, PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, "BibleScannerChannel")
+        val notification = NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_dialog_alert)
             .setContentTitle("Aura Verse Link — Error")
             .setContentText(message)
@@ -461,8 +479,36 @@ class BibleService : Service(), RecognitionListener {
         getSystemService(NotificationManager::class.java).notify("error".hashCode(), notification)
     }
 
+    /** Creates both notification channels up front. Creating a channel that
+     *  already exists with the same settings is a no-op, so this is safe on
+     *  every service start; for upgraders, verse_alerts_v2 simply appears as
+     *  a new channel with the audible, heads-up defaults below. */
+    private fun createNotificationChannels() {
+        val manager = getSystemService(NotificationManager::class.java)
+
+        val alertsChannel = NotificationChannel(
+            ALERTS_CHANNEL_ID, "Verse alerts", NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Sound and on-screen alerts when a Bible reference is detected"
+            setSound(
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            enableVibration(true)
+        }
+        manager.createNotificationChannel(alertsChannel)
+
+        // The foreground-service channel stays low-importance and silent.
+        manager.createNotificationChannel(
+            NotificationChannel(SERVICE_CHANNEL_ID, "Service", NotificationManager.IMPORTANCE_LOW)
+        )
+    }
+
     private fun getStickyNotification(content: String): Notification {
-        val channelId = "BibleScannerChannel"
+        val channelId = SERVICE_CHANNEL_ID
         val channel = NotificationChannel(channelId, "Service", NotificationManager.IMPORTANCE_LOW)
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
 
